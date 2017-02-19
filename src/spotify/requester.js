@@ -6,7 +6,7 @@ const qs = require('querystring');
 
 // makeSpotifyRequester :: Promise SpotifyRequester
 const makeSpotifyRequester = () => {
-  const subDomain = 'foo'; // Doesn't matter, can be random
+  const subDomain = 'skip-ads'; // Doesn't matter, can be random
   const domain = 'spotilocal.com';
   const port = 4370;
 

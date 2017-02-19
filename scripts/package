@@ -1,0 +1,6 @@
+./node_modules/.bin/electron-packager . spotify-mute-ads \
+  --platform=darwin \
+  --arch=x64 \
+  --electronVersion=1.4.15 \
+  --overwrite \
+  --out=out

@@ -1,3 +1,1 @@
-const App = require('./src/app');
-
-App.main();
+require('./src/app').main();

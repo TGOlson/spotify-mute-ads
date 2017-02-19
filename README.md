@@ -8,7 +8,7 @@ $ npm run open
 
 TODO:
   * Better icons
-  * Package
+  * Icon packaging
   * Name, `AdHawk`
   * Handle when spotify is not running
   * Handle when spotify helper is not running

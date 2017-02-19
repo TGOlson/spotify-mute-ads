@@ -7,6 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src",
     "build": "./scripts/build",
+    "package": "./scripts/package",
     "open": "out/spotify-mute-ads-darwin-x64/spotify-mute-ads.app/Contents/MacOS/spotify-mute-ads"
   },
   "repository": {

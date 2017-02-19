@@ -1,0 +1,3 @@
+mkdir -p dist
+cd out/spotify-mute-ads-darwin-x64
+tar -czf ../../dist/spotify-mute-ads.app.gz spotify-mute-ads.app

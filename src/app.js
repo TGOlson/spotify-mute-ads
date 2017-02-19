@@ -1,10 +1,10 @@
 const { app, Tray, Menu } = require('electron');
 
+const Logger = require('./logger');
 const Requester = require('./spotify/requester');
 const Stream = require('./spotify/stream');
 const Actions = require('./spotify/actions');
 const Mute = require('./volume/mute');
-const Logger = require('./logger');
 
 const truncate = (str, length) =>
   str.length > length
@@ -24,7 +24,7 @@ const parseStatus = ({ track }) =>
 const buildMenu = state =>
   Menu.buildFromTemplate([
     { label: `Status: ${state.status}`, enabled: false },
-    { label: `Playing: ${state.playing}`, enabled: false, hidden: state.status !== 'Connected' },
+    { label: `${state.info}`, enabled: false, visible: state.info !== null },
     { type: 'separator' },
     { label: 'Quit', role: 'quit' },
   ]);
@@ -36,8 +36,8 @@ const main = () => {
     const tray = new Tray('./images/icongrey.png');
 
     let state = {
-      status: 'Connected',
-      playing: 'Waiting for status',
+      status: 'Connecting...',
+      info: null,
     };
 
     const setMenu = st => tray.setContextMenu(buildMenu(st));
@@ -63,25 +63,54 @@ const main = () => {
       if (isAd) tray.setImage('./images/iconpurp.png');
       if (!isAd) tray.setImage('./images/icongrey.png');
 
-      const playing = isAd
-        ? 'Ad (muted)'
-        : `${parsed.song} - ${parsed.artist}`;
+      const info = isAd
+        ? 'Playing: Ad (muted)'
+        : `Playing: ${parsed.song} - ${parsed.artist}`;
 
-      updateState({ playing });
+      updateState({ info });
     };
 
-    Requester.makeSpotifyRequester()
-      .then(requester =>
-        // Initial status request should return quickly...
-        Actions.statusQuick(requester)
-          .then(handleStatus)
-          .then(() => requester)
-      )
-      .then(Stream.statusStream(handleStatus))
-      .catch((err) => {
-        Logger.logError(err);
-        app.quit();
+    const connect = () =>
+      Requester.makeSpotifyRequester(Logger)
+      .then((r) => {
+        updateState({ status: 'Connected' });
+        return r;
       });
+
+    const initialStatus = requester =>
+      Actions.statusQuick(requester)
+        .then(handleStatus)
+        .then(() => requester);
+
+    const handleError = (err) => {
+      Logger.logError(err);
+
+      // TODO: something nicer
+      if (err.message === 'NoUserLoggedIn') {
+        Logger.logInfo('Unable to connect. Retrying in 5s.');
+        updateState({ status: 'Unable to connect to Spotify.' });
+
+        /* eslint-disable no-use-before-define */
+        setTimeout(() => run(), 5000);
+        /* eslint-disable no-use-before-define */
+      } else {
+        app.quit();
+      }
+    };
+
+    const run = () =>
+      connect()
+        .then(initialStatus)
+        .then(Stream.statusStream(handleStatus))
+        .catch(handleError);
+
+    // TODO: should be separated out into own scope.
+    // Take in app, return new state, etc.
+    run().catch((err) => {
+      Logger.logError('Unhandled exception. Quitting application.');
+      Logger.logError(err);
+      app.quit();
+    });
   });
 
   // Un-mute when apps quits...

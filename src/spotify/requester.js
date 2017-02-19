@@ -4,8 +4,8 @@ const qs = require('querystring');
 // data SpotifyRequester = SpotifyRequester
 //   { get a :: UrlPath -> Params -> Promise a }
 
-// makeSpotifyRequester :: Promise SpotifyRequester
-const makeSpotifyRequester = () => {
+// makeSpotifyRequester :: Promise (Either SpotifyRequestError SpotifyRequester)
+const makeSpotifyRequester = (logger) => {
   const subDomain = 'skip-ads'; // Doesn't matter, can be random
   const domain = 'spotilocal.com';
   const port = 4370;
@@ -13,7 +13,19 @@ const makeSpotifyRequester = () => {
   const baseUrl = `https://${subDomain}.${domain}:${port}`;
 
   const headers = { Origin: 'https://open.spotify.com' };
-  const baseRequester = url => request({ url, headers, json: true });
+  const baseRequester = (url) => {
+    logger.logInfo(`Making request to ${url}`);
+    return request({ url, headers, json: true })
+      .then((r) => {
+        logger.logInfo(`Response: ${JSON.stringify(r)}`);
+
+        if (r.error) {
+          throw new Error('NoUserLoggedIn');
+        }
+
+        return r;
+      });
+  };
 
   const getOAuthToken = () =>
     baseRequester('https://open.spotify.com/token')

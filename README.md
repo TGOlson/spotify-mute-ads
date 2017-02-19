@@ -1,12 +1,13 @@
 Mute Spotify ads when they come up.
 
 ```
-$ node index.js
+$ npm install
+$ npm run package
+$ npm run open
 ```
 
 TODO:
-  * Wrap up into an Electron app
-  * Top menu bar icon and status
+  * Better icons
   * Handle when spotify is not running
   * Handle when spotify helper is not running
 

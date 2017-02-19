@@ -73,12 +73,11 @@ const main = () => {
     Requester.makeSpotifyRequester()
       .then(requester =>
         // Initial status request should return quickly...
-        Actions.status(1)(requester)
+        Actions.statusQuick(requester)
           .then(handleStatus)
           .then(() => requester)
       )
-      // ...and subsequent stream requests should better leverage the spotify long-polling api
-      .then(Stream.statusStream(100)(handleStatus))
+      .then(Stream.statusStream(handleStatus))
       .catch((err) => {
         Logger.logError(err);
         app.quit();

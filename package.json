@@ -1,16 +1,27 @@
 {
   "name": "spotify-mute-ads",
   "version": "1.0.0",
-  "description": "",
+  "description": "Mute Spotify ads when they come up.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ."
   },
-  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TGOlson/spotify-mute-ads"
+  },
+  "author": "Tyler Olson",
   "license": "ISC",
   "dependencies": {
-    "eslint": "^3.15.0",
     "request": "^2.79.0",
     "request-promise": "^4.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^3.15.0",
+    "eslint-config-airbnb": "^14.1.0",
+    "eslint-plugin-jsx-a11y": "^4.0.0",
+    "eslint-plugin-jsx-import": "0.0.1",
+    "eslint-plugin-react": "^6.10.0"
   }
 }

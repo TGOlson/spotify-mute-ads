@@ -1,12 +1,9 @@
 const Actions = require('./actions');
 
 // statusStream :: (Status -> ()) -> SpotifyRequester -> Promise ()
-const statusStream = (cb) => (requester) =>
+const statusStream = callback => requester =>
   Actions.status(requester)
-    .then(cb)
-    .then(() => statusStream(cb)(requester))
+    .then(callback)
+    .then(() => statusStream(callback)(requester));
 
-//   return undefined;
-// }
-
-module.exports = { statusStream }
+module.exports = { statusStream };

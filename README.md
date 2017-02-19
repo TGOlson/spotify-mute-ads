@@ -1,4 +1,4 @@
-Mute Spotify ads when the come up.
+Mute Spotify ads when they come up.
 
 ```
 $ node index.js

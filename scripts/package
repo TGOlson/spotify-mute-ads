@@ -1,3 +1,3 @@
 mkdir -p dist
-cd out/spotify-mute-ads-darwin-x64
-tar -czf ../../dist/spotify-mute-ads.app.gz spotify-mute-ads.app
+cd out/SpotifyAdHawk-darwin-x64
+zip -r -9 --symlinks -q ../../dist/SpotifyAdHawk.app.zip SpotifyAdHawk.app

@@ -1,5 +1,5 @@
 {
-  "name": "spotify-mute-ads",
+  "name": "SpotifyAdHawk",
   "version": "1.0.0",
   "description": "Mute Spotify ads when they come up.",
   "main": "index.js",
@@ -8,7 +8,7 @@
     "lint": "eslint src",
     "build": "./scripts/build",
     "package": "./scripts/package",
-    "open": "out/spotify-mute-ads-darwin-x64/spotify-mute-ads.app/Contents/MacOS/spotify-mute-ads"
+    "open": "out/SpotifyAdHawk-darwin-x64/SpotifyAdHawk.app/Contents/MacOS/SpotifyAdHawk"
   },
   "repository": {
     "type": "git",

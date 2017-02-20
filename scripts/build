@@ -1,4 +1,4 @@
-./node_modules/.bin/electron-packager . spotify-mute-ads \
+./node_modules/.bin/electron-packager . SpotifyAdHawk \
   --platform=darwin \
   --arch=x64 \
   --electronVersion=1.4.15 \

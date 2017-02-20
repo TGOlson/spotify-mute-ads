@@ -1,4 +1,5 @@
 const { app, Tray, Menu } = require('electron');
+const path = require('path');
 
 const Logger = require('./logger');
 const Requester = require('./spotify/requester');
@@ -29,11 +30,14 @@ const buildMenu = state =>
     { label: 'Quit', role: 'quit' },
   ]);
 
+// const iconPath = path.join(__dirname, '..', 'images', 'icon.png');
+const adIconPath = path.join(__dirname, '..', 'images', 'iconad.png');
+
 const main = () => {
   app.on('ready', () => {
     app.dock.hide();
 
-    const tray = new Tray('./images/icongrey.png');
+    const tray = new Tray(adIconPath);
 
     let state = {
       status: 'Connecting...',
@@ -60,8 +64,8 @@ const main = () => {
 
       Mute.ensureMuteState(isAd);
 
-      if (isAd) tray.setImage('./images/iconpurp.png');
-      if (!isAd) tray.setImage('./images/icongrey.png');
+      // if (isAd) tray.setImage(adIconPath);
+      // if (!isAd) tray.setImage(iconPath);
 
       const info = isAd
         ? 'Playing: Ad (muted)'

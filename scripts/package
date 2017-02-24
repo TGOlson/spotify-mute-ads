@@ -1,3 +1,5 @@
+echo "Packaging electron application"
+
 mkdir -p dist
 cd out/SpotifyAdHawk-darwin-x64
 zip -r -9 --symlinks -q ../../dist/SpotifyAdHawk.app.zip SpotifyAdHawk.app

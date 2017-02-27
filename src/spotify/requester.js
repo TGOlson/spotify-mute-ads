@@ -14,10 +14,10 @@ const makeSpotifyRequester = (logger) => {
 
   const headers = { Origin: 'https://open.spotify.com' };
   const baseRequester = (url) => {
-    logger.logInfo(`Making request to ${url}`);
+    logger.info(`Making request to ${url}`);
     return request({ url, headers, json: true })
       .then((r) => {
-        logger.logInfo(`Response: ${JSON.stringify(r)}`);
+        logger.info(`Response: ${JSON.stringify(r)}`);
 
         if (r.error) {
           throw new Error('NoUserLoggedIn');

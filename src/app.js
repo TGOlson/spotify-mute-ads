@@ -12,14 +12,20 @@ const truncate = (str, length) =>
     ? `${str.substring(0, length - 3)}...`
     : str;
 
+const getSong = track =>
+  track.track_resource ? track.track_resource.name : 'Unknown song title';
+
+const getArtist = track =>
+  track.artist_resource ? track.artist_resource.name : 'Unknown artist name';
+
 // parseStatus :: Status -> Either Ad SongInfo
 const parseStatus = ({ track }) =>
   track.track_type === 'ad'
     ? { type: 'ad' }
     : {
       type: 'song',
-      song: truncate(track.track_resource.name, 20),
-      artist: truncate(track.artist_resource.name, 20),
+      song: truncate(getSong(track), 20),
+      artist: truncate(getArtist(track), 20),
     };
 
 const buildMenu = state =>
@@ -34,6 +40,14 @@ const buildMenu = state =>
 const adIconPath = path.join(__dirname, '..', 'images', 'iconad.png');
 
 const main = () => {
+  // TODO: should probably be in library cache dir
+  const logFile = path.join(app.getPath('userData'), 'client.log');
+
+  const logger = Logger.composeLoggers(
+    Logger.makeConsoleLogger(),
+    Logger.makeFileLogger(logFile)
+  );
+
   app.on('ready', () => {
     app.dock.hide();
 
@@ -55,14 +69,14 @@ const main = () => {
     setMenu(state);
 
     const handleStatus = (status) => {
-      Logger.logInfo(`Status change: ${JSON.stringify(status)}`);
+      logger.info(`Status change: ${JSON.stringify(status)}`);
 
       const parsed = parseStatus(status);
-      Logger.logInfo(`Parsed status: ${JSON.stringify(parsed)}`);
+      logger.info(`Parsed status: ${JSON.stringify(parsed)}`);
 
       const isAd = parsed.type === 'ad';
 
-      Mute.ensureMuteState(isAd);
+      Mute.ensureMuteState(logger, isAd);
 
       // if (isAd) tray.setImage(adIconPath);
       // if (!isAd) tray.setImage(iconPath);
@@ -75,11 +89,11 @@ const main = () => {
     };
 
     const connect = () =>
-      Requester.makeSpotifyRequester(Logger)
-      .then((r) => {
-        updateState({ status: 'Connected' });
-        return r;
-      });
+      Requester.makeSpotifyRequester(logger)
+        .then((r) => {
+          updateState({ status: 'Connected' });
+          return r;
+        });
 
     const initialStatus = requester =>
       Actions.statusQuick(requester)
@@ -87,11 +101,11 @@ const main = () => {
         .then(() => requester);
 
     const handleError = (err) => {
-      Logger.logError(err);
+      logger.error(err);
 
       // TODO: something nicer
       if (err.message === 'NoUserLoggedIn') {
-        Logger.logInfo('Unable to connect. Retrying in 5s.');
+        logger.info('Unable to connect. Retrying in 5s.');
         updateState({ status: 'Unable to connect to Spotify.' });
 
         /* eslint-disable no-use-before-define */
@@ -111,14 +125,14 @@ const main = () => {
     // TODO: should be separated out into own scope.
     // Take in app, return new state, etc.
     run().catch((err) => {
-      Logger.logError('Unhandled exception. Quitting application.');
-      Logger.logError(err);
+      logger.error('Unhandled exception. Quitting application.');
+      logger.error(err);
       app.quit();
     });
   });
 
   // Un-mute when apps quits...
-  app.on('quit', () => Mute.ensureMuteState(false));
+  app.on('quit', () => Mute.ensureMuteState(logger, false));
 };
 
 module.exports = { main };

@@ -19,6 +19,7 @@ const makeSpotifyRequester = (logger) => {
       .then((r) => {
         logger.info(`Response: ${JSON.stringify(r)}`);
 
+        // TODO: better error inspection
         if (r.error) {
           throw new Error('NoUserLoggedIn');
         }

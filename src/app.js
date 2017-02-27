@@ -7,6 +7,9 @@ const Stream = require('./spotify/stream');
 const Actions = require('./spotify/actions');
 const Mute = require('./volume/mute');
 
+const merge = (o1, o2) => Object.assign({}, o1, o2);
+const set = (o, k, v) => merge(o, { [k]: v });
+
 const truncate = (str, length) =>
   str.length > length
     ? `${str.substring(0, length - 3)}...`
@@ -19,7 +22,7 @@ const getArtist = track =>
   track.artist_resource ? track.artist_resource.name : 'Unknown artist name';
 
 // parseStatus :: Status -> Either Ad SongInfo
-const parseStatus = ({ track }) =>
+const getSongInfo = ({ track }) =>
   track.track_type === 'ad'
     ? { type: 'ad' }
     : {
@@ -28,16 +31,110 @@ const parseStatus = ({ track }) =>
       artist: truncate(getArtist(track), 20),
     };
 
-const buildMenu = state =>
-  Menu.buildFromTemplate([
-    { label: `Status: ${state.status}`, enabled: false },
-    { label: `${state.info}`, enabled: false, visible: state.info !== null },
+// const buildMenu = state =>
+//   Menu.buildFromTemplate([
+//     { label: `Status: ${state.status}`, enabled: false },
+//     { label: `${state.info}`, enabled: false, visible: state.info !== null },
+//     { type: 'separator' },
+//     { label: 'Quit', role: 'quit' },
+//   ]);
+
+// const iconPath = path.join(__dirname, '..', 'images', 'icon.png');
+const adIconPath = path.join(__dirname, '..', 'images', 'iconad.png');
+
+// data State = State
+//    { connectionStatus :: ConnectionStatus
+//    , songInfo         :: Maybe SongInfo
+//    , userMuted        :: Bool
+//    }
+
+// data ConnectionStatus = NotConnected | Connecting | Connected | Disconnected
+// data SongInfo = Ad | Song (Text, Text)
+
+// data Action
+//    = ConnectionStatusChange ConnectionStatus
+//    | StatusChange Status
+
+// runState :: State -> Action -> State
+
+
+const runState = (state, action) => {
+  switch (action.type) {
+    case 'ConnectionStatusChange':
+      return set(state, 'connectionStatus', action.connectionStatus);
+    case 'StatusChange': {
+      // Disconnected
+      // if (!status.online) {
+      //   return handleError(new Error('SpotifyOffline'));
+      // }
+
+      const songInfo = getSongInfo(state.status);
+
+      return set(state, 'songInfo', songInfo);
+    }
+    default: throw new Error(`Unexpected action: ${action}`);
+  }
+};
+
+const renderState = (emit, logger, tray, state) => {
+  // TODO: isAd & info depend on connectionStatus...
+  const isAd = state.songInfo !== null && state.songInfo.type === 'ad';
+  const info = 'bar';
+
+  //   const info = isAd
+  //     ? 'Playing: Ad (muted)'
+  //     : `Playing: ${state.songInfo.song} - ${state.songInfo.artist}`;
+
+  Mute.ensureMuteState(logger, isAd);
+
+  const menu = Menu.buildFromTemplate([
+    { label: `Status: ${state.connectionStatus}`, enabled: false },
+    { label: `${info}`, enabled: false, visible: info !== null },
     { type: 'separator' },
     { label: 'Quit', role: 'quit' },
   ]);
 
-// const iconPath = path.join(__dirname, '..', 'images', 'icon.png');
-const adIconPath = path.join(__dirname, '..', 'images', 'iconad.png');
+  tray.setContextMenu(menu);
+};
+
+const runApp = (emit, logger, readyApp) => {
+  const handleStatus = (status) => {
+    logger.info(`Status change: ${JSON.stringify(status)}`);
+    emit({ type: 'StatusChange', status });
+  };
+
+  const handleError = (err) => {
+    logger.error(err);
+
+    // TODO: something nicer
+    if (err.message === 'NoUserLoggedIn' || err.message === 'SpotifyOffline') {
+      logger.info(`Unable to connect due to ${err.message}. Retrying in 5s.`);
+      emit({ type: 'ConnectionStatusChange', connectionStatus: 'Disconnected' });
+
+      /* eslint-disable no-use-before-define */
+      // TODO: this is too heavy handed...
+      // Instead let handlers try to reconnect
+      setTimeout(() => runApp(emit, logger, readyApp), 5000);
+      /* eslint-disable no-use-before-define */
+    } else {
+      logger.error('Unhandled exception. Quitting application.');
+      readyApp.quit();
+    }
+  };
+
+  // TODO: connection flow should be in 'renderState'
+  // When not connected, attempt to connect and emit...?
+  // Probably need another handler for generating actions
+  return Requester.makeSpotifyRequester(logger).then((r) => {
+    emit({ type: 'ConnectionStatusChange', connectionStatus: 'Connected' });
+    return r;
+  }).then(requester =>
+    Actions.statusQuick(requester)
+      .then(handleStatus)
+      .then(() => requester)
+  ).then(Stream.statusStream(handleStatus))
+    .catch(handleError);
+};
 
 const main = () => {
   // TODO: should probably be in library cache dir
@@ -54,81 +151,24 @@ const main = () => {
     const tray = new Tray(adIconPath);
 
     let state = {
-      status: 'Connecting...',
-      info: null,
+      connectionStatus: 'NotConnected',
+      songInfo: null,
+      userMuted: false,
     };
 
-    const setMenu = st => tray.setContextMenu(buildMenu(st));
+    const emit = (act) => {
+      logger.info(`Action: ${JSON.stringify(act)}`);
+      logger.info(`Prev state: ${JSON.stringify(state)}`);
 
-    const updateState = (st) => {
-      const newState = Object.assign({}, state, st);
-      state = newState;
-      setMenu(state);
+      state = runState(state, act);
+      logger.info(`New state: ${JSON.stringify(state)}`);
+
+      renderState(emit, logger, tray, state);
     };
 
-    setMenu(state);
+    emit({ type: 'ConnectionStatusChange', connectionStatus: 'Connecting' });
 
-    const handleStatus = (status) => {
-      logger.info(`Status change: ${JSON.stringify(status)}`);
-
-      const parsed = parseStatus(status);
-      logger.info(`Parsed status: ${JSON.stringify(parsed)}`);
-
-      const isAd = parsed.type === 'ad';
-
-      Mute.ensureMuteState(logger, isAd);
-
-      // if (isAd) tray.setImage(adIconPath);
-      // if (!isAd) tray.setImage(iconPath);
-
-      const info = isAd
-        ? 'Playing: Ad (muted)'
-        : `Playing: ${parsed.song} - ${parsed.artist}`;
-
-      updateState({ info });
-    };
-
-    const connect = () =>
-      Requester.makeSpotifyRequester(logger)
-        .then((r) => {
-          updateState({ status: 'Connected' });
-          return r;
-        });
-
-    const initialStatus = requester =>
-      Actions.statusQuick(requester)
-        .then(handleStatus)
-        .then(() => requester);
-
-    const handleError = (err) => {
-      logger.error(err);
-
-      // TODO: something nicer
-      if (err.message === 'NoUserLoggedIn') {
-        logger.info('Unable to connect. Retrying in 5s.');
-        updateState({ status: 'Unable to connect to Spotify.' });
-
-        /* eslint-disable no-use-before-define */
-        setTimeout(() => run(), 5000);
-        /* eslint-disable no-use-before-define */
-      } else {
-        app.quit();
-      }
-    };
-
-    const run = () =>
-      connect()
-        .then(initialStatus)
-        .then(Stream.statusStream(handleStatus))
-        .catch(handleError);
-
-    // TODO: should be separated out into own scope.
-    // Take in app, return new state, etc.
-    run().catch((err) => {
-      logger.error('Unhandled exception. Quitting application.');
-      logger.error(err);
-      app.quit();
-    });
+    runApp(emit, logger, app);
   });
 
   // Un-mute when apps quits...
